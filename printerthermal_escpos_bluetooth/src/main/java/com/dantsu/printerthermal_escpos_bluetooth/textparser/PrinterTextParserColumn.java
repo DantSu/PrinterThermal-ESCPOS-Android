@@ -1,10 +1,11 @@
 package com.dantsu.printerthermal_escpos_bluetooth.textparser;
 
 import java.util.Hashtable;
+
 import com.dantsu.printerthermal_escpos_bluetooth.PrinterCommands;
 
 public class PrinterTextParserColumn {
-    
+
     private static String generateSpace(int nbrSpace) {
         StringBuilder str = new StringBuilder();
         for (int i = 0; i < nbrSpace; i++) {
@@ -12,11 +13,11 @@ public class PrinterTextParserColumn {
         }
         return str.toString();
     }
-    
-    
+
+
     private PrinterTextParserLine textParserLine;
     private PrinterTextParserElement[] elements = new PrinterTextParserElement[0];
-    
+
     /**
      * Create a new instance of PrinterTextParserColumn.
      *
@@ -28,11 +29,11 @@ public class PrinterTextParserColumn {
         PrinterTextParser textParser = this.textParserLine.getTextParser();
         String textAlign = PrinterTextParser.TAGS_ALIGN_LEFT;
         byte[] textUnderlineStartColumn = textParser.getLastTextUnderline();
-    
-    
+
+
         // =================================================================
         // Check the column alignment
-        
+
         switch (textColumn.substring(0, 3).toUpperCase()) {
             case "[" + PrinterTextParser.TAGS_ALIGN_LEFT + "]":
             case "[" + PrinterTextParser.TAGS_ALIGN_CENTER + "]":
@@ -41,26 +42,26 @@ public class PrinterTextParserColumn {
                 textColumn = textColumn.substring(3);
                 break;
         }
-        
+
         String trimmedTextColumn = textColumn.trim();
         boolean isImgOrBarcodeLine = false;
-        
+
         if (this.textParserLine.getNbrColumns() == 1 && trimmedTextColumn.indexOf("<") == 0) {
             // =================================================================
             // Image or Barcode Lines
             int openTagIndex = trimmedTextColumn.indexOf("<"),
                 openTagEndIndex = trimmedTextColumn.indexOf(">", openTagIndex + 1) + 1;
-            
+
             if(openTagIndex < openTagEndIndex) {
                 PrinterTextParserTag textParserTag = new PrinterTextParserTag(trimmedTextColumn.substring(openTagIndex, openTagEndIndex));
-    
+
                 switch (textParserTag.getTagName()) {
                     case PrinterTextParser.TAGS_IMAGE:
                     case PrinterTextParser.TAGS_BARCODE:
                     case PrinterTextParser.TAGS_QRCODE:
                         String closeTag = "</" + textParserTag.getTagName() + ">";
                         int closeTagPosition = trimmedTextColumn.length() - closeTag.length();
-            
+
                         if (trimmedTextColumn.substring(closeTagPosition).equals(closeTag)) {
                             switch (textParserTag.getTagName()) {
                                 case PrinterTextParser.TAGS_IMAGE:
@@ -79,30 +80,30 @@ public class PrinterTextParserColumn {
                 }
             }
         }
-        
+
         if(!isImgOrBarcodeLine) {
             // =================================================================
             // If the tag is for format text
-            
+
             int offset = 0;
             while (true) {
                 int openTagIndex = textColumn.indexOf("<", offset), closeTagIndex = -1;
-        
+
                 if (openTagIndex != -1) {
                     closeTagIndex = textColumn.indexOf(">", openTagIndex);
                 } else {
                     openTagIndex = textColumn.length();
                 }
-        
+
                 this.appendString(textColumn.substring(offset, openTagIndex));
-        
+
                 if (closeTagIndex == -1) {
                     break;
                 }
-                
+
                 closeTagIndex++;
                 PrinterTextParserTag textParserTag = new PrinterTextParserTag(textColumn.substring(openTagIndex, closeTagIndex));
-                
+
                 if (PrinterTextParser.isTagTextFormat(textParserTag.getTagName())) {
                     if(textParserTag.isCloseTag()) {
                         switch (textParserTag.getTagName()) {
@@ -153,21 +154,21 @@ public class PrinterTextParserColumn {
                     offset = openTagIndex + 1;
                 }
             }
-            
+
             // =================================================================
             // Define the number of spaces required for the different alignments
-            
+
             int nbrCharColumn = this.textParserLine.getNbrCharColumn(),
                 nbrCharForgetted = this.textParserLine.getNbrCharForgetted(),
                 nbrCharColumnExceeded = this.textParserLine.getNbrCharColumnExceeded(),
                 nbrCharTextWithoutTag = 0,
                 leftSpace = 0,
                 rightSpace = 0;
-    
+
             for (PrinterTextParserElement textParserElement : this.elements) {
                 nbrCharTextWithoutTag += textParserElement.length();
             }
-    
+
             switch (textAlign) {
                 case PrinterTextParser.TAGS_ALIGN_LEFT:
                     rightSpace = nbrCharColumn - nbrCharTextWithoutTag;
@@ -180,12 +181,12 @@ public class PrinterTextParserColumn {
                     leftSpace = nbrCharColumn - nbrCharTextWithoutTag;
                     break;
             }
-    
+
             if (nbrCharForgetted > 0) {
                 nbrCharForgetted -= 1;
                 rightSpace++;
             }
-    
+
             if (nbrCharColumnExceeded < 0) {
                 leftSpace += nbrCharColumnExceeded;
                 nbrCharColumnExceeded = 0;
@@ -194,7 +195,7 @@ public class PrinterTextParserColumn {
                     leftSpace = 1;
                 }
             }
-    
+
             if (leftSpace < 0) {
                 nbrCharColumnExceeded += leftSpace;
                 leftSpace = 0;
@@ -203,65 +204,65 @@ public class PrinterTextParserColumn {
                 nbrCharColumnExceeded += rightSpace;
                 rightSpace = 0;
             }
-    
+
             if (leftSpace > 0) {
                 this.prependString(PrinterTextParserColumn.generateSpace(leftSpace), PrinterCommands.TEXT_SIZE_MEDIUM, PrinterCommands.TEXT_WEIGHT_NORMAL, textUnderlineStartColumn);
             }
             if (rightSpace > 0) {
                 this.appendString(PrinterTextParserColumn.generateSpace(rightSpace), PrinterCommands.TEXT_SIZE_MEDIUM, PrinterCommands.TEXT_WEIGHT_NORMAL, textParser.getLastTextUnderline());
             }
-    
+
             // =================================================================================================
             // nbrCharForgetted and nbrCharColumnExceeded is use to define number of spaces for the next columns
-            
+
             this.textParserLine
                 .setNbrCharForgetted(nbrCharForgetted)
                 .setNbrCharColumnExceeded(nbrCharColumnExceeded);
         }
     }
-    
+
     private PrinterTextParserColumn prependString(String text) {
         PrinterTextParser textParser = this.textParserLine.getTextParser();
         return this.prependString(text, textParser.getLastTextSize(), textParser.getLastTextBold(), textParser.getLastTextUnderline());
     }
-    
+
     private PrinterTextParserColumn prependString(String text, byte[] textSize, byte[] textBold, byte[] textUnderline) {
         return this.prependElement(new PrinterTextParserString(text, textSize, textBold, textUnderline));
     }
-    
+
     private PrinterTextParserColumn appendString(String text) {
         PrinterTextParser textParser = this.textParserLine.getTextParser();
         return this.appendString(text, textParser.getLastTextSize(), textParser.getLastTextBold(), textParser.getLastTextUnderline());
     }
-    
+
     private PrinterTextParserColumn appendString(String text, byte[] textSize, byte[] textBold, byte[] textUnderline) {
         return this.appendElement(new PrinterTextParserString(text, textSize, textBold, textUnderline));
     }
-    
+
     private PrinterTextParserColumn prependImage(String textAlign, String hexString) {
         return this.prependElement(new PrinterTextParserImg(this, textAlign, hexString));
     }
-    
+
     private PrinterTextParserColumn appendImage(String textAlign, String hexString) {
         return this.appendElement(new PrinterTextParserImg(this, textAlign, hexString));
     }
-    
-    private PrinterTextParserColumn prependBarcode(String textAlign, Hashtable<String,String> barcodeAttributes, String code) {
+
+    private PrinterTextParserColumn prependBarcode(String textAlign, Hashtable<String, String> barcodeAttributes, String code) {
         return this.prependElement(new PrinterTextParserBarcode(this, textAlign, barcodeAttributes, code));
     }
 
-    private PrinterTextParserColumn appendBarcode(String textAlign, Hashtable<String,String> barcodeAttributes, String code) {
+    private PrinterTextParserColumn appendBarcode(String textAlign, Hashtable<String, String> barcodeAttributes, String code) {
         return this.appendElement(new PrinterTextParserBarcode(this, textAlign, barcodeAttributes, code));
     }
 
-    private PrinterTextParserColumn prependQRCode(String textAlign, Hashtable<String,String> qrCodeAttributes, String data) {
+    private PrinterTextParserColumn prependQRCode(String textAlign, Hashtable<String, String> qrCodeAttributes, String data) {
         return this.prependElement(new PrinterTextParserBarcode(this, textAlign, qrCodeAttributes, data));
     }
 
-    private PrinterTextParserColumn appendQRCode(String textAlign, Hashtable<String,String> qrCodeAttributes, String data) {
+    private PrinterTextParserColumn appendQRCode(String textAlign, Hashtable<String, String> qrCodeAttributes, String data) {
         return this.appendElement(new PrinterTextParserQRCode(this, textAlign, qrCodeAttributes, data));
     }
-    
+
     private PrinterTextParserColumn prependElement(PrinterTextParserElement element) {
         PrinterTextParserElement[] elementsTmp = new PrinterTextParserElement[this.elements.length + 1];
         elementsTmp[0] = element;
@@ -269,7 +270,7 @@ public class PrinterTextParserColumn {
         this.elements = elementsTmp;
         return this;
     }
-    
+
     private PrinterTextParserColumn appendElement(PrinterTextParserElement element) {
         PrinterTextParserElement[] elementsTmp = new PrinterTextParserElement[this.elements.length + 1];
         System.arraycopy(this.elements, 0, elementsTmp, 0, this.elements.length);
@@ -277,11 +278,11 @@ public class PrinterTextParserColumn {
         this.elements = elementsTmp;
         return this;
     }
-    
+
     public PrinterTextParserLine getLine() {
         return this.textParserLine;
     }
-    
+
     public PrinterTextParserElement[] getElements() {
         return this.elements;
     }

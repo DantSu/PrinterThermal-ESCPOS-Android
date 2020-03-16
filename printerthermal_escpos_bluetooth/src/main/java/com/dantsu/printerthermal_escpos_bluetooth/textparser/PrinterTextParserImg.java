@@ -4,48 +4,47 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 
-import com.dantsu.printerthermal_escpos_bluetooth.Printer;
-import com.dantsu.printerthermal_escpos_bluetooth.bluetooth.BluetoothPrinterSocketConnection;
+import com.dantsu.printerthermal_escpos_bluetooth.PosPrinter;
 
 
 public class PrinterTextParserImg implements PrinterTextParserElement {
-    
+
     /**
      * Convert Drawable instance to a hexadecimal string of the image data.
      *
-     * @param printer A Printer instance that will print the image.
+     * @param posPrinter A PosPrinter instance that will print the image.
      * @param drawable Drawable instance to be converted.
      * @return A hexadecimal string of the image data. Empty string if Drawable cannot be cast to BitmapDrawable.
      */
-    public static String bitmapToHexadecimalString(Printer printer, Drawable drawable) {
+    public static String bitmapToHexadecimalString(PosPrinter posPrinter, Drawable drawable) {
         if (drawable instanceof BitmapDrawable) {
-            return PrinterTextParserImg.bitmapToHexadecimalString(printer, (BitmapDrawable) drawable);
+            return PrinterTextParserImg.bitmapToHexadecimalString(posPrinter, (BitmapDrawable) drawable);
         }
         return "";
     }
-    
+
     /**
      * Convert BitmapDrawable instance to a hexadecimal string of the image data.
      *
-     * @param printer A Printer instance that will print the image.
+     * @param posPrinter A PosPrinter instance that will print the image.
      * @param bitmapDrawable BitmapDrawable instance to be converted.
      * @return A hexadecimal string of the image data.
      */
-    public static String bitmapToHexadecimalString(Printer printer, BitmapDrawable bitmapDrawable) {
-        return PrinterTextParserImg.bitmapToHexadecimalString(printer, bitmapDrawable.getBitmap());
+    public static String bitmapToHexadecimalString(PosPrinter posPrinter, BitmapDrawable bitmapDrawable) {
+        return PrinterTextParserImg.bitmapToHexadecimalString(posPrinter, bitmapDrawable.getBitmap());
     }
-    
+
     /**
      * Convert Bitmap instance to a hexadecimal string of the image data.
      *
-     * @param printer A Printer instance that will print the image.
+     * @param posPrinter A PosPrinter instance that will print the image.
      * @param bitmap Bitmap instance to be converted.
      * @return A hexadecimal string of the image data.
      */
-    public static String bitmapToHexadecimalString(Printer printer, Bitmap bitmap) {
-        return PrinterTextParserImg.bytesToHexadecimalString(printer.bitmapToBytes(bitmap));
+    public static String bitmapToHexadecimalString(PosPrinter posPrinter, Bitmap bitmap) {
+        return PrinterTextParserImg.bytesToHexadecimalString(posPrinter.bitmapToBytes(bitmap));
     }
-    
+
     /**
      * Convert byte array to a hexadecimal string of the image data.
      *
@@ -63,7 +62,7 @@ public class PrinterTextParserImg implements PrinterTextParserElement {
         }
         return imageHexString.toString();
     }
-    
+
     /**
      * Convert hexadecimal string of the image data to bytes ESC/POS command.
      *
@@ -72,7 +71,7 @@ public class PrinterTextParserImg implements PrinterTextParserElement {
      */
     public static byte[] hexadecimalStringToBytes(String hexString) {
         byte[] bytes = new byte[0];
-        
+
         try {
             bytes = new byte[hexString.length() / 2];
             for (int i = 0; i < bytes.length; i++) {
@@ -82,14 +81,14 @@ public class PrinterTextParserImg implements PrinterTextParserElement {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+
         return bytes;
     }
-    
-    
+
+
     private int length;
     private byte[] image;
-    
+
     /**
      * Create new instance of PrinterTextParserImg.
      *
@@ -109,12 +108,12 @@ public class PrinterTextParserImg implements PrinterTextParserElement {
      * @param image Bytes contain the image in ESC/POS command.
      */
     public PrinterTextParserImg(PrinterTextParserColumn printerTextParserColumn, String textAlign, byte[] image) {
-        Printer printer = printerTextParserColumn.getLine().getTextParser().getPrinter();
+        PosPrinter posPrinter = printerTextParserColumn.getLine().getTextParser().getPosPrinter();
 
         int byteWidth = ((int) image[4] & 0xFF),
                 width = byteWidth * 8,
                 height = ((int) image[6] & 0xFF),
-                nbrByteDiff = (int) Math.floor(((float) (printer.getPrintingWidthPx() - width)) / 8f),
+                nbrByteDiff = (int) Math.floor(((float) (posPrinter.getPrintingWidthPx() - width)) / 8f),
                 nbrWhiteByteToInsert = 0;
 
         switch (textAlign) {
@@ -137,7 +136,7 @@ public class PrinterTextParserImg implements PrinterTextParserElement {
             image = newImage;
         }
 
-        this.length = (int) Math.ceil(((float) (((int) image[4] & 0xFF) * 8)) / ((float) printer.getCharSizeWidthPx()));
+        this.length = (int) Math.ceil(((float) (((int) image[4] & 0xFF) * 8)) / ((float) posPrinter.getCharSizeWidthPx()));
         this.image = image;
     }
 
@@ -154,12 +153,12 @@ public class PrinterTextParserImg implements PrinterTextParserElement {
     /**
      * Print image
      *
-     * @param printerSocket Bluetooth printer socket connection
+     * @param posPrinter Bluetooth printer socket connection
      * @return this Fluent method
      */
     @Override
-    public PrinterTextParserImg print(BluetoothPrinterSocketConnection printerSocket) {
-        printerSocket.printImage(this.image);
+    public PrinterTextParserImg print(PosPrinter posPrinter) {
+        posPrinter.printImage(this.image);
         return this;
     }
 }

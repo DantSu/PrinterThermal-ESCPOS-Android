@@ -1,24 +1,25 @@
-package lib.bluetooth;
+package com.dantsu.printerthermal_escpos_bluetooth.connection_types;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 
 import java.io.IOException;
+import java.io.OutputStream;
 
-public class BluetoothDeviceSocketConnection {
-    
+public class BluetoothSocketConnection implements ISocketConnection {
+
     protected BluetoothDevice device;
     protected BluetoothSocket bluetoothSocket = null;
-    
+
     /**
-     * Create un instance of BluetoothDeviceSocketConnection.
+     * Create new instance of BluetoothSocketConnection.
      *
      * @param device an instance of android.bluetooth.BluetoothDevice
      */
-    public BluetoothDeviceSocketConnection(BluetoothDevice device) {
+    public BluetoothSocketConnection(BluetoothDevice device) {
         this.device = device;
     }
-    
+
     /**
      * Get the instance android.bluetooth.BluetoothDevice connected.
      *
@@ -27,7 +28,7 @@ public class BluetoothDeviceSocketConnection {
     public BluetoothDevice getDevice() {
         return this.device;
     }
-    
+
     /**
      * Check if the bluetooth device is connected by socket.
      *
@@ -36,9 +37,9 @@ public class BluetoothDeviceSocketConnection {
     public boolean isConnected() {
         return (this.bluetoothSocket != null);
     }
-    
+
     /**
-     * Start socket connection with the bluetooth device.
+     * Start socket connection and open stream with the bluetooth device.
      *
      * @return return true if success
      */
@@ -46,34 +47,48 @@ public class BluetoothDeviceSocketConnection {
         try {
             this.bluetoothSocket = this.device.createRfcommSocketToServiceRecord(this.device.getUuids()[0].getUuid());
             this.bluetoothSocket.connect();
-            return true;
-        } catch (IOException ex) {
+        } catch (IOException e) {
+            e.printStackTrace();
             try {
                 this.bluetoothSocket.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+            } catch (IOException ex) {
+                ex.printStackTrace();
             }
+
             this.bluetoothSocket = null;
         }
         return false;
     }
-    
+
     /**
-     * Close the socket connection with the bluetooth device.
+     * Close the socket connection and stream with the bluetooth device.
      *
      * @return return true if success
      */
     public boolean disconnect() {
-        if(!this.isConnected()) {
-            return true;
-        }
+
         try {
-            this.bluetoothSocket.close();
-            this.bluetoothSocket = null;
-            return true;
+            if (this.isConnected()) {
+                this.bluetoothSocket.close();
+                this.bluetoothSocket = null;
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         return false;
+    }
+
+    /**
+     * Obtain the output stream to send data to
+     */
+
+    public OutputStream getOutputStream() {
+        try {
+            return this.bluetoothSocket.getOutputStream();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

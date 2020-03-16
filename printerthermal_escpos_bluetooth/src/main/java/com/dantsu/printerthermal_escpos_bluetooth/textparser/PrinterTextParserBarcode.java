@@ -2,22 +2,21 @@ package com.dantsu.printerthermal_escpos_bluetooth.textparser;
 
 import java.util.Hashtable;
 
-import com.dantsu.printerthermal_escpos_bluetooth.Printer;
+import com.dantsu.printerthermal_escpos_bluetooth.PosPrinter;
 import com.dantsu.printerthermal_escpos_bluetooth.PrinterCommands;
-import com.dantsu.printerthermal_escpos_bluetooth.bluetooth.BluetoothPrinterSocketConnection;
 
 public class PrinterTextParserBarcode implements PrinterTextParserElement {
-    
+
     private int length;
     private int height;
     private byte[] align;
     private String code;
     private int barcodeType;
-    
+
     public PrinterTextParserBarcode(PrinterTextParserColumn printerTextParserColumn, String textAlign, Hashtable<String, String> barcodeAttributes, String code) {
-        Printer printer = printerTextParserColumn.getLine().getTextParser().getPrinter();
+        PosPrinter posPrinter = printerTextParserColumn.getLine().getTextParser().getPosPrinter();
         code = code.trim();
-        
+
         this.align = PrinterCommands.TEXT_ALIGN_LEFT;
         switch (textAlign) {
             case PrinterTextParser.TAGS_ALIGN_CENTER:
@@ -27,7 +26,7 @@ public class PrinterTextParserBarcode implements PrinterTextParserElement {
                 this.align = PrinterCommands.TEXT_ALIGN_RIGHT;
                 break;
         }
-        
+
         this.barcodeType = PrinterCommands.BARCODE_EAN13;
         try {
             if (barcodeAttributes.containsKey(PrinterTextParser.ATTR_BARCODE_TYPE)) {
@@ -47,17 +46,17 @@ public class PrinterTextParserBarcode implements PrinterTextParserElement {
             e.printStackTrace();
         }
 
-        this.length = printer.getNbrCharactersPerLine();
+        this.length = posPrinter.getNbrCharactersPerLine();
 
-        this.height = printer.mmToPx(10f);
+        this.height = posPrinter.mmToPx(10f);
         try {
             if (barcodeAttributes.containsKey(PrinterTextParser.ATTR_BARCODE_HEIGHT)) {
-                this.height = printer.mmToPx(Float.parseFloat(barcodeAttributes.get(PrinterTextParser.ATTR_BARCODE_HEIGHT)));
+                this.height = posPrinter.mmToPx(Float.parseFloat(barcodeAttributes.get(PrinterTextParser.ATTR_BARCODE_HEIGHT)));
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        
+
         this.code = code;
     }
 
@@ -74,12 +73,12 @@ public class PrinterTextParserBarcode implements PrinterTextParserElement {
     /**
      * Print barcode
      *
-     * @param printerSocket Bluetooth printer socket connection
+     * @param posPrinter Bluetooth printer socket connection
      * @return this Fluent method
      */
     @Override
-    public PrinterTextParserBarcode print(BluetoothPrinterSocketConnection printerSocket) {
-        printerSocket
+    public PrinterTextParserBarcode print(PosPrinter posPrinter) {
+        posPrinter
                 .setAlign(this.align)
                 .printBarcode(this.barcodeType, this.code, this.height);
         return this;
